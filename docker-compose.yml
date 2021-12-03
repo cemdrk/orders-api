@@ -1,0 +1,53 @@
+
+version: '3'
+
+services:
+  api:
+    build: .
+    # command: python manage.py runserver 0.0.0.0:8000
+    entrypoint: ./docker-entrypoint.sh
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      - postgres
+      - rabbitmq
+    links:
+      - postgres
+      - rabbitmq
+    environment:
+      - SECRET_KEY=test_secret
+      - DB_NAME=postgres
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - EXCHANGE_NAME=order_exchange
+      - QUEUE_NAME=order_queue
+      - RABBITMQ_HOST=rabbitmq
+
+  consumer:
+    build: .
+    command: python manage.py consume
+    depends_on:
+      - api
+
+  postgres:
+    image: postgres:14-alpine
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=postgres
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    links:
+      - postgres
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - 15672:15672
